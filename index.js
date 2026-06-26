@@ -4,10 +4,6 @@ const app = express()
 const { PORT } = require('./util/config')
 const { connectToDatabase } = require('./util/db')
 
-const { sequelize } = require('./util/db')
-
-sequelize.sync({ alter: true })
-
 const errorHandler = require('./middleware/errorHandler')
 
 const blogsRouter = require('./controllers/blogs')

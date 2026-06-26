@@ -1,19 +1,44 @@
 const router = require('express').Router()
 const jwt = require('jsonwebtoken')
+const { Op } = require('sequelize');
 
-const { Blog } = require('../models')
+const { Blog, User } = require('../models')
 
 const blogFinder = require('../middleware/blogFinder')
 const authenticateToken = require('../middleware/authenticateToken')
 
-router.get('/', async (req, res) => {
-    const blogs = await Blog.findAll()
-    res.json(blogs)
+router.get('/', async (req, res, next) => {
+    try{
+        const { search } = req.query;
+
+        const where = search
+            ? {
+                [Op.or]: [
+                { title: { [Op.iLike]: `%${search}%` } },
+                { author: { [Op.iLike]: `%${search}%` } },
+                ],
+            }
+            : {}
+        const blogs = await Blog.findAll({
+            where,
+            attributes: ['id', 'author', 'title', 'url', 'likes'],
+            include: [
+                {
+                    model: User,
+                    attributes: ['username', 'name'],
+                },
+            ],
+            order: [['likes', 'DESC']],
+        })
+        res.json(blogs)
+    } catch (err) {
+        next(err)
+    }
 })
 
-router.post('/', async (req, res, next) => {
+router.post('/', authenticateToken, async (req, res, next) => {
     try {
-        const blog = await Blog.create({ ...req.body })
+        const blog = await Blog.create({ ...req.body, userId: req.user.id })
         res.json(blog)
     } catch (err) {
         next(err)

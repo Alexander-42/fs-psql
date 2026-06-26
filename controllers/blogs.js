@@ -1,40 +1,17 @@
 const router = require('express').Router()
+const jwt = require('jsonwebtoken')
 
 const { Blog } = require('../models')
 
-const blogFinder = async (req, res, next) => {
-    try {
-        req.blog = await Blog.findByPk(req.params.id)
-        if (!req.blog) {
-            return res.status(404).end()
-        }
-
-        next()
-    } catch (err) {
-        next(err)
-    }
-}
-
-const errorHandler = (err, req, res, next) => {
-    console.error(err.message)
-
-    if (err.name === 'SequelizeValidationError') {
-        return res.status(400).json({
-            error: err.errors.map(e => e.message)
-        })
-    }
-    
-    res.status(500).json({
-        error: err.message || 'Internal Server Error'
-    })
-}
+const blogFinder = require('../middleware/blogFinder')
+const authenticateToken = require('../middleware/authenticateToken')
 
 router.get('/', async (req, res) => {
     const blogs = await Blog.findAll()
     res.json(blogs)
 })
 
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
     try {
         const blog = await Blog.create({ ...req.body })
         res.json(blog)
@@ -43,8 +20,12 @@ router.post('/', async (req, res) => {
     }
 })
 
-router.delete('/:id', blogFinder, async (req, res) => {
+router.delete('/:id', authenticateToken, blogFinder, async (req, res, next) => {
     try {
+        const userOwnsBlog = req.user.id === req.blog.userId
+        if (!userOwnsBlog){
+            return res.status(403).json({ error: "Permission denied"})
+        }
         await req.blog.destroy()
         res.status(204).end()
     } catch (err) {
@@ -52,7 +33,7 @@ router.delete('/:id', blogFinder, async (req, res) => {
     }
 })
 
-router.put('/:id', blogFinder, async (req, res) => {
+router.put('/:id', blogFinder, async (req, res, next) => {
     try{
         req.blog.likes = req.body.likes
         await req.blog.save()
@@ -61,7 +42,5 @@ router.put('/:id', blogFinder, async (req, res) => {
         next(err)
     }
 })
-
-router.use(errorHandler)
 
 module.exports = router

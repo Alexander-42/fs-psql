@@ -1,15 +1,26 @@
 const router = require("express").Router()
 
-router.post('/', async (req, res, next) => {
-  try {
-    await sequelize.query(`
-      TRUNCATE "Blogs", "Users" RESTART IDENTITY CASCADE;
-    `)
+const { Blog, User } = require("../models")
 
-    res.status(204).end()
-  } catch (err) {
-    next(err)
-  }
+router.post('/', async (req, res, next) => {
+    try {
+        await User.destroy({
+        where: {},
+        truncate: true,
+        cascade: true,
+        restartIdentity: true,
+        })
+        
+        await Blog.destroy({
+        where: {},
+        truncate: true,
+        cascade: true,
+        restartIdentity: true,
+        })
+        res.status(204).end()
+    } catch (err) {
+        next(err)
+    }
 })
 
 module.exports = router

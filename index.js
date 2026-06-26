@@ -30,6 +30,11 @@ app.get('/', (req, res, next) => {
 
 app.use(errorHandler)
 
-app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`)
-})
+const start = async () => {
+    await connectToDatabase()
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`)
+    })
+}
+
+start()
